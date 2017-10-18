@@ -633,7 +633,23 @@ public class LineBox extends Box implements InlinePaintable {
         if (pageBox != null) {
             boolean needsPageBreak = 
                 alwaysBreak || getAbsY() + getHeight() >= pageBox.getBottom() - c.getExtraSpaceBottom();
-                
+           /*
+            * If a page break is required but this element's parent has a CSS overflow attribute set to
+            * hidden (and its height is on auto) then the elements size is adjusted so as to not overflow
+            * the page and the page break is cancelled. The result will be a clipped / cropped element
+            * at the bottom of the page instead of the element being moved over onto the next page.
+            */
+           if ( needsPageBreak && ! alwaysBreak && getStyle().isBlockEquivalent() )
+           {
+               CalculatedStyle  parentStyle = getParent().getStyle();
+
+               if ( parentStyle.isAutoHeight() && parentStyle.getIdent( CSSName.OVERFLOW ) == IdentValue.HIDDEN )
+               {
+                   setHeight( Math.max( 0, pageBox.getBottom() - c.getExtraSpaceBottom() - getAbsY() ) );
+                   needsPageBreak = false;
+               }
+           }
+
            if (needsPageBreak) {
                forcePageBreakBefore(c, IdentValue.ALWAYS, false);
                calcCanvasLocation();
